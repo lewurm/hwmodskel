@@ -1,0 +1,11 @@
+.swp
+*~
+
+#sim
+sim/
+
+#modelsim
+src/transcript
+
+#quartus
+quartus/calc/
