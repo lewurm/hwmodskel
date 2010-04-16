@@ -8,6 +8,7 @@ POST_SDO := $(MPWD)/../quartus/calc/simulation/modelsim/calc_vhd.sdo
 POST_SDO_INST := inst
 QUARTUS := $(MPWD)/../quartus/calc
 QUOPT := --read_settings_files=on --write_settings_files=off calc -c calc
+QUMACRO := unset LS_COLORS; cd $(QUARTUS);
 
 HN := $(shell hostname)
 TILABHOSTS := $(shell echo ti{1..9}) apps1
@@ -55,7 +56,7 @@ beh_%: $(D_BEHSIM)/$(WORK)/beh_%_tb/_primary.dat beh_%_tb.do behsim
 	vsim "work.$@_tb(sim)" -f /dev/null -do $(MPWD)/$@_tb.do
 
 #postsim
-postsim: $(POST_VHO) $(D_POSTSIM)/modelsim.ini $(POST_VTARGETS)
+postsim: $(POST_VHO) $(POST_SDO)
 
 $(D_POSTSIM)/modelsim.ini:
 	@echo " INIT for post-layout simulation"
@@ -64,16 +65,16 @@ $(D_POSTSIM)/modelsim.ini:
 	vlib work > /dev/null ; \
 	vmap work work > /dev/null ;
 
-$(D_POSTSIM)/$(WORK)/%/_primary.dat: %.vhd $(D_POSTSIM)/modelsim.ini
+$(D_POSTSIM)/$(WORK)/%/_primary.dat: %.vhd
 	@echo " CC    $<"
 	@cd $(D_POSTSIM); \
 	vcom -work $(WORK) $(MPWD)/$<
 
-post_%: $(D_POSTSIM)/$(WORK)/post_%_tb/_primary.dat post_%_tb.do postsim $(POST_SDO)
+post_%: postsim $(D_POSTSIM)/$(WORK)/post_%_tb/_primary.dat post_%_tb.do
 	cd $(D_POSTSIM); \
 	vsim "work.$@_tb(sim)" -sdftyp /$(POST_SDO_INST)=$(POST_SDO) -f /dev/null -do $(MPWD)/$@_tb.do
 
-$(QUARTUS):
+$(QUARTUS): $(D_POSTSIM)/modelsim.ini
 	@echo -n " Quartus  generate project"
 ifeq ($(findstring $(HN), $(TILABHOSTS)),$(HN))
 	@echo "(@tilab)"
@@ -84,26 +85,25 @@ else
 endif
 
 #TODO: more targets plz...
-$(POST_VHO) $(POST_SDO): $(QUARTUS) postsim
+$(POST_VHO) $(POST_SDO): $(QUARTUS) $(POST_VTARGETS)
 	@echo " Quartus  analysis & synthesis"
-	@unset LS_COLORS; cd $(QUARTUS); \
-	quartus_map $(QUOPT)
+	@$(QUMACRO) quartus_map $(QUOPT) | tee $(MPWD)/quartusmap.tmp
 	@echo " Quartus  fitter"
-	@unset LS_COLORS; cd $(QUARTUS); \
-	quartus_fit $(QUOPT)
+	@$(QUMACRO) quartus_fit $(QUOPT)
 	@echo " Quartus  assembler"
-	@unset LS_COLORS; cd $(QUARTUS); \
-	quartus_asm $(QUOPT)
+	@$(QUMACRO) quartus_asm $(QUOPT)
 	@echo " Quartus  timing analyzer"
-	@unset LS_COLORS; cd $(QUARTUS); \
-	quartus_tan $(QUOPT) --timing_analysis_only
+	@$(QUMACRO) quartus_tan $(QUOPT) --timing_analysis_only | tee $(MPWD)/quartustan.tmp
 	@echo " Quartus  EDA netlist writer"
-	@unset LS_COLORS; cd $(QUARTUS); \
-	quartus_eda $(QUOPT)
+	@$(QUMACRO) quartus_eda $(QUOPT)
 	#not nice atm :/
 	@echo " CC    $(POST_VHO)"
 	@cd $(D_POSTSIM); \
 	vcom -work $(WORK) $(POST_VHO)
+	@echo -n "  INFO  logic cells: "
+	@grep 'logic cells' quartusmap.tmp | awk ' { print $$3 } '
+	@grep 'Fmax ' quartustan.tmp | sed -e 's/  / /g' -e 's/Info/INFO/g' -e 's/:/ /g'
+	@rm quartus*.tmp
 
 .PHONY: clean
 clean:
