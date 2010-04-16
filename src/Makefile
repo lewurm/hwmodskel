@@ -6,12 +6,17 @@ D_POSTSIM := $(MPWD)/../sim/post
 POST_VHO := $(MPWD)/../quartus/calc/simulation/modelsim/calc.vho
 POST_SDO := $(MPWD)/../quartus/calc/simulation/modelsim/calc_vhd.sdo
 POST_SDO_INST := inst
+QUARTUS := $(MPWD)/../quartus/calc
+QUOPT := --read_settings_files=on --write_settings_files=off calc -c calc
+
+HN := $(shell hostname)
+TILABHOSTS := $(shell echo ti{1..9}) apps1
 
 WORK := work
 
 # o reihenfolge ist wichtig
 # o keine testbechnes hier angeben
-BEH_IFILES = gen_pkg foo
+BEH_IFILES = gen_pkg alu
 BEH_IFILES := $(strip $(BEH_IFILES))
 
 # o keine testbenches hier angeben
@@ -24,8 +29,7 @@ POST_IFILES := $(strip $(POST_IFILES))
 BEH_VTARGETS := $(foreach n, $(BEH_IFILES), $(D_BEHSIM)/$(WORK)/$(n)/_primary.dat)
 
 #virtuelle targets fuer postsim
-POST_VTARGETS := $(foreach n, $(shell grep ENTITY $(POST_VHO) | awk '{ print $$2 }'), $(D_POSTSIM)/$(WORK)/$(n)/_primary.dbs)
-POST_VTARGETS += $(foreach n, $(POST_IFILES), $(D_POSTSIM)/$(WORK)/$(n)/_primary.dat)
+POST_VTARGETS := $(foreach n, $(POST_IFILES), $(D_POSTSIM)/$(WORK)/$(n)/_primary.dat)
 
 
 all: behsim
@@ -48,7 +52,7 @@ $(D_BEHSIM)/$(WORK)/%/_primary.dat: %.vhd $(D_BEHSIM)/modelsim.ini
 
 beh_%: $(D_BEHSIM)/$(WORK)/beh_%_tb/_primary.dat beh_%_tb.do behsim
 	cd $(D_BEHSIM); \
-	vsim -t ps "work.$@_tb(sim)" -f /dev/null -do $(MPWD)/$@_tb.do
+	vsim "work.$@_tb(sim)" -f /dev/null -do $(MPWD)/$@_tb.do
 
 #postsim
 postsim: $(POST_VHO) $(D_POSTSIM)/modelsim.ini $(POST_VTARGETS)
@@ -60,11 +64,6 @@ $(D_POSTSIM)/modelsim.ini:
 	vlib work > /dev/null ; \
 	vmap work work > /dev/null ;
 
-$(D_POSTSIM)/$(WORK)/%/_primary.dbs: $(POST_VHO) $(D_POSTSIM)/modelsim.ini
-	@echo " CC    $<"
-	@cd $(D_POSTSIM); \
-	vcom -work $(WORK) $(POST_VHO)
-
 $(D_POSTSIM)/$(WORK)/%/_primary.dat: %.vhd $(D_POSTSIM)/modelsim.ini
 	@echo " CC    $<"
 	@cd $(D_POSTSIM); \
@@ -72,23 +71,41 @@ $(D_POSTSIM)/$(WORK)/%/_primary.dat: %.vhd $(D_POSTSIM)/modelsim.ini
 
 post_%: $(D_POSTSIM)/$(WORK)/post_%_tb/_primary.dat post_%_tb.do postsim $(POST_SDO)
 	cd $(D_POSTSIM); \
-	vsim -t ps "work.$@_tb(sim)" -sdftyp /$(POST_SDO_INST)=$(POST_SDO) -f /dev/null -do $(MPWD)/$@_tb.do
+	vsim "work.$@_tb(sim)" -sdftyp /$(POST_SDO_INST)=$(POST_SDO) -f /dev/null -do $(MPWD)/$@_tb.do
 
-$(POST_VHO) $(POST_SDO):
-	@if [ -f $@ ]; \
-	then echo "vho/sdo: passt"; true ; \
-	else echo "Fehler: $@ muss mit quartus erstellt werden"; false; \
-	fi
+$(QUARTUS):
+	@echo -n " Quartus  generate project"
+ifeq ($(findstring $(HN), $(TILABHOSTS)),$(HN))
+	@echo "(@tilab)"
+	@cd ../quartus; ./linux_tilab.sh
+else
+	@echo "(not @ tilab)"
+	@cd ../quartus; ./linux_web.sh
+endif
 
-quartus:
-	@echo "Die angebotene (free) Quartus II Version aka Web Edition funktioniert "
-	@echo "unter Linux leider nicht. (Build endet mit einem Error, auch mit dem debouncing-bsp der LVA)."
-	@echo "Befehl um es trotzdem zu probieren (falls installiert):"
-	@echo "$$ unset LS_COLORS #falls gesetzt..."
-	@echo -n "$$ quartus # bin verzeichnis von quartus muss sich in "; echo -n "$$"; echo "PATH befinden"
-	@echo "in windows (per cygwin?): TODO"
+#TODO: more targets plz...
+$(POST_VHO) $(POST_SDO): $(QUARTUS) postsim
+	@echo " Quartus  analysis & synthesis"
+	@unset LS_COLORS; cd $(QUARTUS); \
+	quartus_map $(QUOPT)
+	@echo " Quartus  fitter"
+	@unset LS_COLORS; cd $(QUARTUS); \
+	quartus_fit $(QUOPT)
+	@echo " Quartus  assembler"
+	@unset LS_COLORS; cd $(QUARTUS); \
+	quartus_asm $(QUOPT)
+	@echo " Quartus  timing analyzer"
+	@unset LS_COLORS; cd $(QUARTUS); \
+	quartus_tan $(QUOPT) --timing_analysis_only
+	@echo " Quartus  EDA netlist writer"
+	@unset LS_COLORS; cd $(QUARTUS); \
+	quartus_eda $(QUOPT)
+	#not nice atm :/
+	@echo " CC    $(POST_VHO)"
+	@cd $(D_POSTSIM); \
+	vcom -work $(WORK) $(POST_VHO)
 
 .PHONY: clean
 clean:
-	rm -Rf $(D_BEHSIM) $(D_POSTSIM)
+	rm -Rf $(D_BEHSIM) $(D_POSTSIM) $(QUARTUS)
 

@@ -4,18 +4,15 @@ ModelSim-Altera) unter Linux, fuer die LVA "Hardware Modellierung VL"
 Die Webedition von ModelSim-Altera und Quartus II koennen hier kostenlos bezogen werden:
 > https://www.altera.com/support/software/download/altera_design/quartus_we/dnl-quartus_we.jsp
 
-Die Linuxvariante von Quartus II scheint aber leider noch mehr Alpha als Beta zu sein, deshalb muss
-der Vorgang der Synthese noch in Windows gemacht werden (z.B. per virtuelle Maschine die auf das
-Verzeichnis per Samba-Share darauf zugreifen kann).
-
-Mit der Quartus II Version die im TILAB installiert ist, klappt die Synthese soweit ich das bis
-jetzt testen konnte.
 
 
 ein Makefile befindet sich in ~hwmodskel/src. Folgende Punkte sind zu beachten:
 
 o vsim, vcom, usw. muessen in $PATH sein (ueberlichweise ist das
   /opt/altera9.1/modelsim_ase/linux/).
+
+o quartus_map, quartus_asm, usw. muessen sich ebenfalls in $PATH befinden. (ueberlichweise
+  ist das /opt/altera9.1/quartus/bin/)
 
 o eine beh-sim wird so aufgerufen: beh_$(FILE)
 	- Fuehrt beh-sim fuer $(FILE) aus. Dafuer muss beh_$(FILE)_tb.vhd und beh_$(FILE)_tb.do
@@ -26,9 +23,6 @@ o eine beh-sim wird so aufgerufen: beh_$(FILE)
 	  Testbenches angeben!)
 
 o eine post-sim wird aehnlich aufgerufen: post_$(FILE)
-	- hier ist zu beachten, dass das entsprechende VHO bzw. SDO File von Quartus schon generiert
-	  wurde (per ~hwmodskel/quartus/windows.cmd projekt erstellen, mit Quartus dann die Projektdatei
-	  oeffnen und mit "Processing -> Start Compilation" alles builden)
 	- Instanzname der tb_entity muss immer "sim" sein.
 	- Instanzname der instanzierten Komponente muss immer "inst" sein.
 	- Files die kompiliert werden sollen, muessen in $(POST_IFILES) angegeben werden. Im
@@ -39,7 +33,7 @@ o eine post-sim wird aehnlich aufgerufen: post_$(FILE)
 Beispiele:
 $ make beh_foo
 $ make post_foo
-$ make clean #loescht alle simulationsdateien
+$ make clean #loescht alle erzeugten dateien
 
 
 Tipps:
