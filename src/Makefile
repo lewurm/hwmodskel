@@ -17,7 +17,7 @@ WORK := work
 
 # o reihenfolge ist wichtig
 # o keine testbechnes hier angeben
-BEH_IFILES = gen_pkg alu
+BEH_IFILES = gen_pkg foo
 BEH_IFILES := $(strip $(BEH_IFILES))
 
 # o keine testbenches hier angeben
