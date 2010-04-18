@@ -1,9 +1,8 @@
-hwmodskel ist eine "Vorlage" zur praktischen Benutzung der Altera Tools (insbesondere
-ModelSim-Altera) unter Linux, fuer die LVA "Hardware Modellierung VL"
+hwmodskel ist eine "Vorlage" zur praktischen Benutzung der Altera Tools unter Linux, fuer die LVA
+"Hardware Modellierung VL"
 
 Die Webedition von ModelSim-Altera und Quartus II koennen hier kostenlos bezogen werden:
 > https://www.altera.com/support/software/download/altera_design/quartus_we/dnl-quartus_we.jsp
-
 
 
 ein Makefile befindet sich in ~hwmodskel/src. Folgende Punkte sind zu beachten:
@@ -11,24 +10,26 @@ ein Makefile befindet sich in ~hwmodskel/src. Folgende Punkte sind zu beachten:
 o vsim, vcom, usw. muessen in $PATH sein (ueberlichweise ist das
   /opt/altera9.1/modelsim_ase/linux/).
 
-o quartus_map, quartus_asm, usw. muessen sich ebenfalls in $PATH befinden. (ueberlichweise
-  ist das /opt/altera9.1/quartus/bin/)
+o quartus_map, quartus_asm, usw. muessen sich ebenfalls in $PATH befinden (ueberlichweise
+  ist das /opt/altera9.1/quartus/bin/).
+
+o die Dateinamen (ohne ".vhd") der Dateien die Packages enthalten muessen in PGKFILES angegeben
+  werden (Reihenfolge beachten).
+
+o die Dateinamen (ohne ".vhd") der Dateien die Architectures bzw. Entites enthalten muessen in
+  SRCFILES angegeben werden (Reihenfolge beachten).
+
+o bei PKGFILES und SRCFILES duerfen _keine_ Testbenches angegeben werden.
 
 o eine beh-sim wird so aufgerufen: beh_$(FILE)
-	- Fuehrt beh-sim fuer $(FILE) aus. Dafuer muss beh_$(FILE)_tb.vhd und beh_$(FILE)_tb.do
-	  existieren.
+	- die Dateien beh_$(FILE)_tb.vhd und beh_$(FILE)_tb.do muessen existieren.
 	- Instanzname der tb_entity muss immer "sim" sein.
 	- Instanzname der instanzierten Komponente muss immer "inst" sein.
-	- Files die kompiliert werden sollen, muessen in $(BEH_IFILES) angegeben werden (Achtung: keine
-	  Testbenches angeben!)
 
 o eine post-sim wird aehnlich aufgerufen: post_$(FILE)
+	- die Dateien post_$(FILE)_tb.vhd und post_$(FILE)_tb.do muessen existieren.
 	- Instanzname der tb_entity muss immer "sim" sein.
 	- Instanzname der instanzierten Komponente muss immer "inst" sein.
-	- Files die kompiliert werden sollen, muessen in $(POST_IFILES) angegeben werden. Im
-	  Allgemeinen werden das globale Definitionen sein (z.b. fuer Typen, Konstanten, etc. die fuer
-	  die Testbenches benoetigt werden), da die sich zu simulierenden Instanzen im VHO-File
-	  befinden. (Achtung: keine Testbenches angeben!)
 
 Beispiele:
 $ make beh_foo

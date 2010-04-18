@@ -20,22 +20,32 @@ TILABHOSTS := $(shell echo ti{1..9}) apps1
 
 WORK := work
 
+# o source files der module
 # o reihenfolge ist wichtig
 # o keine testbechnes hier angeben
-BEH_IFILES = gen_pkg foo
+SRCFILES := foo
+
+# o files der packages
+# o keine testbechnes hier angeben
+PKGFILES := gen_pkg
+
+BEH_IFILES = $(PKGFILES) $(SRCFILES)
 BEH_IFILES := $(strip $(BEH_IFILES))
 
-# o keine testbenches hier angeben
-# o beachte, dass sich viele files schon in dem VHO file befinden -- es muessen eigentlich nur
-#   abhaengigkeiten fuer die testbenches angegeben werden
-POST_IFILES = gen_pkg
+POST_IFILES = $(PKGFILES)
 POST_IFILES := $(strip $(POST_IFILES))
+
+POST_SRC = $(SRCFILES)
+
 
 #virtuelle targets fuer behsim: weil wir sowas wie ein objectfile von vcom nicht bekommen. bessere ideen sind willkommen
 BEH_VTARGETS := $(foreach n, $(BEH_IFILES), $(D_BEHSIM)/$(WORK)/$(n)/_primary.dat)
 
-#virtuelle targets fuer postsim
+#virtuelle targets fuer packagefiles der postsim
 POST_VTARGETS := $(foreach n, $(POST_IFILES), $(D_POSTSIM)/$(WORK)/$(n)/_primary.dat)
+
+#virtuelle targets fuer sourcefiles der postsim
+POST_SRC_VTARGETS := $(foreach n, $(POST_SRC), $(n).vhd)
 
 
 all: behsim
@@ -90,7 +100,7 @@ else
 endif
 
 #TODO: more targets plz...
-$(POST_VHO) $(POST_SDO): $(QUARTUS) $(POST_VTARGETS)
+$(POST_VHO) $(POST_SDO): $(QUARTUS) $(POST_VTARGETS) $(POST_SRC_VTARGETS)
 	@echo " Quartus  analysis & synthesis"
 	@$(QUMACRO) quartus_map $(QUOPT) | tee $(MPWD)/quartusmap.tmp
 	@echo " Quartus  fitter"
