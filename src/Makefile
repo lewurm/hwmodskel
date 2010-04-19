@@ -9,14 +9,14 @@ POST_SDO_INST := inst
 QUARTUS := $(MPWD)/../quartus/calc
 QUOPT := --read_settings_files=on --write_settings_files=off calc -c calc
 
+HN := $(shell hostname)
+TILABHOSTS := $(shell echo ti{1..9}) apps1
+
 ifeq ($(findstring $(HN), $(TILABHOSTS)),$(HN))
 QUMACRO := unset LS_COLORS; cd $(QUARTUS); export LD_LIBRARY_PATH=/opt/quartus/quartus/linux64; export LM_LICENSE_FILE=26888@quartus; 
 else
 QUMACRO := unset LS_COLORS; cd $(QUARTUS);
 endif
-
-HN := $(shell hostname)
-TILABHOSTS := $(shell echo ti{1..9}) apps1
 
 WORK := work
 
